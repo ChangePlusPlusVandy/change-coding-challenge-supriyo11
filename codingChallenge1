@@ -79,9 +79,9 @@ public class TwitterGuessing {
         allTweets.addAll(kanyeTweets);
 
         //filters out tags and hyperlinks
-        for (Status status : allTweets) {
+        for (int i = 0; i < allTweets.size(); i++) {
             if(allTweets.toString().contains("@") || allTweets.toString().contains("http")) {
-                allTweets.remove(status);
+                allTweets.remove(i);
             }
         }
 
