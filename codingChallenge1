@@ -1,0 +1,187 @@
+/*
+Your task is to build a game which tests the user on their ability to differentiate tweets between two individuals: Elon Musk and Kanye West.
+Given a tweet by Kanye West or Elon Musk, prompt the user to guess which public figure made the tweet, let the user know if they were correct.
+Once the user is finished let the user know how accurate they were in their guesses.
+You will use the Twitter API found in the Twitter Developer Platform to write a program that accomplishes this. In order to use this API, you’ll need a twitter account.
+Here is the guide for using the GET statuses/user_timeline endpoint.
+For the purposes of this program, we will only be asking you to use the following endpoint.
+Here is a helpful sample request to get 100 tweets from @twitterapi:
+GET https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=twitterapi?count=100
+You will want to modify this endpoint to get tweets from @elonmusk and @kanyewest.
+This endpoint will return a maximum of 3,200 tweets in JSON. We only care about the text property for each tweet object.
+Some tweets are retweets, replies, and tag other twitter users, and they are thus not genuine Elon and Kanye. As well, some tweets contain links to videos and images.
+Please filter the tweets so they do not include any references to other users and URL links. This should be pretty easy to do looking at the text of the string of each tweet.
+The game loop for your application should look something like this:
+When user starts program, load the first 3200 tweets by Elon and Kanye, filtered to not include any links or tags to other twitter users
+Randomly choose a tweet by Elon or Kanye to give to the user
+Prompt the user to guess
+Let the user know if they were correct
+Repeat steps 1-4
+Show the user their game statistics*/
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Random;
+import static java.lang.System.exit;
+import twitter4j.*;
+
+public class TwitterGuessing {
+
+    public static void main(String[] args) throws TwitterException {
+
+        Scanner sc = new Scanner(System.in);
+        Random r = new Random();
+        String actualName = "";
+        int score = 0;
+        int totalRounds = 0;
+
+        welcome(sc);
+
+        while (!(sc.next().equals("0"))) {
+            //displays a random tweet
+            List<Status> randomTweet = getRandomTweet(r, getTweets());
+
+            for (Status status : randomTweet) {
+                System.out.println(status.getText());
+                actualName = status.getUser().getScreenName();
+            }
+
+            //keeps asking user to enter name until they enter a valid name
+            System.out.println("Who tweeted this? Elon Musk or Kanye West? Type your answer (type 0 to end the program)");
+
+            while (isValid(getUserGuess(sc)) == false) {
+                isValid(getUserGuess(sc));
+            }
+
+            boolean answersMatch = answersMatch(actualName, getUserGuess(sc));
+            displayResult(answersMatch, actualName);
+
+            //used to keep track of user's statistics
+            totalRounds++;
+            if (answersMatch) {
+                score++;
+            }
+            System.out.println("Your current score is: " + score + "/" + totalRounds + ". Click any button to continue.");
+        }
+
+        exit(0);
+    }
+
+    //imports data from Twitter
+    public static List<Status> getTweets() throws TwitterException {
+
+        Twitter twitter = TwitterFactory.getSingleton();
+        List<Status> elonTweets = twitter.getUserTimeline("elonmusk");
+        List<Status> kanyeTweets = twitter.getUserTimeline("kanyewest");
+        List<Status> allTweets = new ArrayList<Status>();
+        allTweets.addAll(elonTweets);
+        allTweets.addAll(kanyeTweets);
+
+        //filters out tags and hyperlinks
+        for (Status status : allTweets) {
+            if(allTweets.toString().contains("@") || allTweets.toString().contains("http")) {
+                allTweets.remove(status);
+            }
+        }
+
+        return allTweets;
+    }
+
+    //introduces the user how to play the game
+    public static void welcome(Scanner sc) {
+        System.out.println("Welcome to the Elon Musk - Kanye West Tweet guessing game! You will be given a random tweet, either from Elon Musk or Kanye West, and your goal is to guess who sent the tweet.");
+        System.out.println("Simply type the name (first or last) of who you think sent the tweet. If you want to exit the game at anytime, press 0. Press any button (but 0) to continue. Good luck!");
+        if (sc.next().equals("0")){
+            System.out.println("Thank you for playing!");
+            exit(0);
+        }
+    }
+
+    //gets a randomly selected tweet from either Elon Musk or Kanye West
+    public static List<Status> getRandomTweet(Random r, List<Status> allTweets) {
+        int randomIndex = r.nextInt(allTweets.size());
+        return (allTweets).subList(randomIndex - 1,randomIndex);
+    }
+
+    //gets the name of the person that the user entered as a String
+    public static String getUserGuess(Scanner sc) {
+        String guessedName = sc.nextLine();
+        return guessedName;
+    }
+
+    //checks to make sure that the user entered a valid name
+    public static boolean isValid(String guessedName) {
+        boolean userGuessisElon = guessedName.toUpperCase().contains("ELON")||guessedName.toUpperCase().contains("MUSK");
+        boolean userGuessIsKanye = guessedName.toUpperCase().contains("KANYE")||guessedName.toUpperCase().contains("WEST");
+        boolean isValid = false;
+
+        //test case 1: user enters both names
+        if (userGuessisElon && userGuessIsKanye) {
+            System.out.println("Please only enter the name of either Elon Musk or Kanye West, not both");
+        }
+        //test case 2: user enters one of the names
+        else if (userGuessisElon || userGuessIsKanye) {
+            isValid = true;
+        }
+        //test case 3: user enters 0 to exit
+        else if (guessedName.equals("0")) {
+            System.out.println("Thank you for playing!");
+            exit(0);
+        }
+        //test case 4: user enters neither of the names
+        else {
+            System.out.println("I do not recognize that name, please enter a valid name.");
+        }
+        return isValid;
+    }
+
+    //gets the name of the tweet author from the the user's guess
+    public static String getGuessedName(String guessedName) {
+        if(guessedName.toUpperCase().contains("ELON") || guessedName.toUpperCase().contains("MUSK")) {
+            return "Elon Musk";
+        }
+        else {
+            return "Kanye West";
+        }
+    }
+
+    //checks if the user's answer is correct
+    public static boolean answersMatch (String actualName, String guessedName) {
+        if (actualName.contains(guessedName)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    //displays whether the user was correct or incorrect
+    public static void displayResult (boolean answersMatch, String actualName) {
+
+        String correctAnswer = "";
+        String incorrectAnswer = "";
+
+        if (answersMatch) {
+            if (actualName.equals("elonmusk")) {
+                correctAnswer = "Elon Musk";
+            }
+            else {
+                correctAnswer = "Kanye West";
+            }
+            System.out.println("Good job! " + correctAnswer + " is correct!");
+        }
+        else {
+            if (actualName.equals("elonmusk")) {
+                correctAnswer = "Elon Musk";
+                incorrectAnswer = "Kanye West";
+            }
+            else {
+                correctAnswer = "Kanye West";
+                incorrectAnswer = "Elon Musk";
+            }
+            System.out.println("Sorry, " + incorrectAnswer + " is incorrect, the correct answer is: " + correctAnswer + ".");
+        }
+    }
+
+}
